@@ -1,3 +1,9 @@
+from functools import partial
+#from concurrent.futures import ThreadPoolExecutor
+from multiprocessing.pool import ThreadPool
+import traceback
+
+import vk_api.exceptions
 from neo4j import GraphDatabase, Transaction, Session
 from vk_api import VkApi
 
@@ -6,7 +12,13 @@ from constants import VK_API_KEY
 
 class FriendsLoader:
     def __init__(self):
-        self._visited_ids = None
+        self._users_of_previous_steps: set | None = None
+        self._current_step_users: set | None = None
+        self._next_step_candidates: set | None = None
+        self._created_users: set | None = None
+        # TODO actually use data from this set
+        self._private_profiles: set | None = None
+
         self._session: Session | None = None
 
         vk_session = VkApi(token=VK_API_KEY)
@@ -14,35 +26,67 @@ class FriendsLoader:
 
 
     def run(self, user_id: int, recursion_depth: int):
-        self._visited_ids = set()
-        driver = GraphDatabase.driver('neo4j+s://69c255a0.databases.neo4j.io', auth=('neo4j', 'E1Y7GU9nTNvIaNQKZRN-MXeJHkB-W_-xliZoy-ubseo'))
+        self._users_of_previous_steps = set()
+        self._current_step_users = set()
+        self._next_step_candidates = set()
+        self._created_users = set()
+        self._private_profiles = set()
+
+        driver = GraphDatabase.driver('neo4j+s://69c255a0.databases.neo4j.io', auth=('neo4j', 'E1Y7GU9nTNvIaNQKZRN-MXeJHkB-W_-xliZoy-ubseo'), max_connection_lifetime=120)
         with driver.session(database='neo4j') as session:
             self._session = session
             self.add_user(user_id)
-            self._load_friends_recursive(user_id, recursion_depth)
+            self._current_step_users.add(user_id)
+
+            for step_number in range_closed(recursion_depth, 1, -1):
+                self._run_step()
+                self._users_of_previous_steps |= self._current_step_users
+                self._current_step_users = self._next_step_candidates - self._users_of_previous_steps
+            self._run_step(last_step=True)
+
             self._session = None
         driver.close()
 
 
-    def _load_friends_recursive(self, user_id: int, recursion_depth: int):
-        if recursion_depth == 0:
-            return
+    def _run_step(self, last_step=False):
+        handle_user_partial = partial(self._handle_user, last_step=last_step)
+        with ThreadPool(processes=1) as pool:
+            pool.map(handle_user_partial, self._current_step_users)
+        #list(map(self._handle_user, self._current_step_users))
 
-        friend_ids = self._vk.friends.get(user_id=user_id)['items']
+
+    def _handle_user(self, user_id: int, last_step=False):
+        #try:
+        friend_ids = self.vk_get_friends(user_id)
         for friend_id in friend_ids:
-            if friend_id not in self._visited_ids:
-                self.add_user(friend_id)
-                self._session.execute_write(add_friendship, user_id, friend_id)
-                self._load_friends_recursive(friend_id, recursion_depth - 1)
+            if friend_id not in self._created_users:
+                if not last_step:
+                    self.add_user(friend_id)
+                else:
+                    continue
+            self._session.execute_write(add_user_connection, user_id, friend_id)
+            self._next_step_candidates.add(friend_id)
+        #except Exception as e:
+        #    traceback.print_exc()
+        #    raise e
 
 
+
+    def vk_get_friends(self, user_id) -> list:
+        try:
+            return self._vk.friends.get(user_id=user_id)['items']
+        except vk_api.exceptions.ApiError as e:
+            if str(e) == '[30] This profile is private':
+                self._private_profiles.add(user_id)
+                return []
+            raise e
 
 
 
 
 
     def add_user(self, user_id: int):
-        #user = self._session.execute_read(get_user, user_id=user_id)
+        self._created_users.add(user_id)
         user = self._vk.users.get(user_id=user_id)[0]
         self._session.execute_write(add_user, user_id, user['first_name'], user['last_name'])
 
@@ -63,7 +107,7 @@ def add_user(tx: Transaction, user_id, name, surname):
 #         return record
 
 
-def add_user_subscription(tx: Transaction, subscriber_from_id: int, subscriber_to_id: int):
+def add_user_connection(tx: Transaction, subscriber_from_id: int, subscriber_to_id: int):
     tx.run('''
     MATCH (a: User), (b: User)
     WHERE a.id = $subscriber_from_id AND b.id = $subscriber_to_id
@@ -71,10 +115,18 @@ def add_user_subscription(tx: Transaction, subscriber_from_id: int, subscriber_t
     ''', subscriber_from_id=subscriber_from_id, subscriber_to_id=subscriber_to_id)
 
 
-def add_friendship(tx: Transaction, user1_id: int, user2_id: int):
-    add_user_subscription(tx, user1_id, user2_id)
-    add_user_subscription(tx, user2_id, user1_id)
+#def add_friendship(tx: Transaction, user1_id: int, user2_id: int):
+#    add_user_subscription(tx, user1_id, user2_id)
+#    add_user_subscription(tx, user2_id, user1_id)
+
+#TODO
+#CREATE CONSTRAINT FOR (user:User) REQUIRE user.id IS UNIQUE
+
+def range_closed(a, b, step=1):
+    return range(a, b + step, step)
 
 
-#if __name__ == '__main__':
-#    FriendsLoader().run(user_id=259182295, recursion_depth=1)
+if __name__ == '__main__':
+    #user_id = 117547723
+    user_id = 259182295
+    FriendsLoader().run(user_id=user_id, recursion_depth=1)
