@@ -4,7 +4,7 @@ from multiprocessing.pool import ThreadPool
 import traceback
 
 import vk_api.exceptions
-from neo4j import GraphDatabase, Transaction, Session
+from neo4j import GraphDatabase, Transaction, Session, Driver
 from vk_api import VkApi
 
 from constants import VK_API_KEY
@@ -18,8 +18,7 @@ class FriendsLoader:
         self._created_users: set | None = None
         # TODO actually use data from this set
         self._private_profiles: set | None = None
-
-        self._session: Session | None = None
+        self._driver: Driver | None = None
 
         vk_session = VkApi(token=VK_API_KEY)
         self._vk = vk_session.get_api()
@@ -32,40 +31,41 @@ class FriendsLoader:
         self._created_users = set()
         self._private_profiles = set()
 
-        driver = GraphDatabase.driver('neo4j+s://69c255a0.databases.neo4j.io', auth=('neo4j', 'E1Y7GU9nTNvIaNQKZRN-MXeJHkB-W_-xliZoy-ubseo'), max_connection_lifetime=120)
-        with driver.session(database='neo4j') as session:
-            self._session = session
-            self.add_user(user_id)
-            self._current_step_users.add(user_id)
+        self._driver = GraphDatabase.driver('neo4j+s://69c255a0.databases.neo4j.io', auth=('neo4j', 'E1Y7GU9nTNvIaNQKZRN-MXeJHkB-W_-xliZoy-ubseo'), max_connection_lifetime=120)
 
-            for step_number in range_closed(recursion_depth, 1, -1):
-                self._run_step()
-                self._users_of_previous_steps |= self._current_step_users
-                self._current_step_users = self._next_step_candidates - self._users_of_previous_steps
-            self._run_step(last_step=True)
+        with self._driver.session(database="neo4j") as session:
+            self.add_user(session, user_id)
 
-            self._session = None
-        driver.close()
+        self._current_step_users.add(user_id)
+
+        for step_number in range_closed(recursion_depth, 1, -1):
+            self._run_step()
+            self._users_of_previous_steps |= self._current_step_users
+            self._current_step_users = self._next_step_candidates - self._users_of_previous_steps
+        self._run_step(last_step=True)
+
+        self._driver.close()
 
 
     def _run_step(self, last_step=False):
         handle_user_partial = partial(self._handle_user, last_step=last_step)
-        with ThreadPool(processes=1) as pool:
+        with ThreadPool() as pool:
             pool.map(handle_user_partial, self._current_step_users)
         #list(map(self._handle_user, self._current_step_users))
 
 
     def _handle_user(self, user_id: int, last_step=False):
         #try:
-        friend_ids = self.vk_get_friends(user_id)
-        for friend_id in friend_ids:
-            if friend_id not in self._created_users:
-                if not last_step:
-                    self.add_user(friend_id)
-                else:
-                    continue
-            self._session.execute_write(add_user_connection, user_id, friend_id)
-            self._next_step_candidates.add(friend_id)
+        with self._driver.session(database="neo4j") as session:
+            friend_ids = self.vk_get_friends(user_id)
+            for friend_id in friend_ids:
+                if friend_id not in self._created_users:
+                    if not last_step:
+                        self.add_user(session, friend_id)
+                    else:
+                        continue
+                session.execute_write(add_user_connection, user_id, friend_id)
+                self._next_step_candidates.add(friend_id)
         #except Exception as e:
         #    traceback.print_exc()
         #    raise e
@@ -85,10 +85,10 @@ class FriendsLoader:
 
 
 
-    def add_user(self, user_id: int):
+    def add_user(self, session: Session, user_id: int):
         self._created_users.add(user_id)
         user = self._vk.users.get(user_id=user_id)[0]
-        self._session.execute_write(add_user, user_id, user['first_name'], user['last_name'])
+        session.execute_write(add_user, user_id, user['first_name'], user['last_name'])
 
 
 
