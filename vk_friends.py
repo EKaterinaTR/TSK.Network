@@ -59,14 +59,21 @@ class FriendsLoader:
         #try:
         with self._driver.session(database="neo4j") as session:
             friend_ids = self._vk_get_friends(user_id)
-            for friend_id in friend_ids:
+            follower_ids = self._vk_get_followers(user_id)
+            for i, friend_id in enumerate(friend_ids + follower_ids):
                 if friend_id not in self._created_users:
                     if not last_step:
                         self.add_user(session, friend_id)
                     else:
                         continue
-                session.execute_write(add_user_connection, user_id, friend_id, 'FRIENDSHIP')
+                if i < len(friend_ids):
+                    # Friend
+                    session.execute_write(add_user_connection, user_id, friend_id, 'FRIEND')
+                else:
+                    # Follower
+                    session.execute_write(add_user_connection, friend_id, user_id, 'FOLLOWER')
                 self._next_step_candidates.add(friend_id)
+
         #except Exception as e:
         #    traceback.print_exc()
         #    raise e
@@ -81,6 +88,22 @@ class FriendsLoader:
                 return []
             raise e
 
+
+    def _vk_get_followers(self, user_id) -> list:
+        try:
+            return self._vk.users.get_followers(user_id=user_id)['items']
+        except vk_api.exceptions.ApiError as e:
+            if str(e) == '[30] This profile is private':
+                return []
+            raise e
+
+    # def _vk_get_user_subscriptions(self, user_id) -> list:
+    #     try:
+    #         return self._vk.users.get_subscriptions(user_id=user_id)['users']['items']
+    #     except vk_api.exceptions.ApiError as e:
+    #         if str(e) == '[30] This profile is private':
+    #             return []
+    #         raise e
 
 
     def add_user(self, session: Session, user_id: int):
@@ -107,7 +130,7 @@ def add_user(tx: Transaction, user_id, name, surname):
 
 
 def add_user_connection(tx: Transaction, subscriber_from_id: int, subscriber_to_id: int, connection_type: str):
-    if connection_type not in ['FRIENDSHIP', 'SUBSCRIPTION']:
+    if connection_type not in ['FRIEND', 'FOLLOWER']:
         raise ValueError('Attempted to use unsupported connection_type')
     tx.run(f'''
     MATCH (a: User), (b: User)
@@ -135,9 +158,9 @@ def range_closed(start, stop, step=1):
 
 def fix_one_directional_friendships(tx: Transaction):
     tx.run(f'''
-    MATCH (a:User) -[:FRIENDSHIP]-> (b:User)
-    WHERE NOT (a) <-[:FRIENDSHIP]- (b)
-    CREATE (a) <-[:FRIENDSHIP]- (b)
+    MATCH (a:User) -[:FRIEND]-> (b:User)
+    WHERE NOT (a) <-[:FRIEND]- (b)
+    CREATE (a) <-[:FRIEND]- (b)
     ''')
 
 
