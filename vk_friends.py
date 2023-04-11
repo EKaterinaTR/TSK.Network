@@ -16,8 +16,7 @@ class FriendsLoader:
         self._current_step_users: set | None = None
         self._next_step_candidates: set | None = None
         self._created_users: set | None = None
-        # TODO actually use data from this set
-        self._private_profiles: set | None = None
+
         self._driver: Driver | None = None
 
         vk_session = VkApi(token=VK_API_KEY)
@@ -29,7 +28,6 @@ class FriendsLoader:
         self._current_step_users = set()
         self._next_step_candidates = set()
         self._created_users = set()
-        self._private_profiles = set()
 
         self._driver = GraphDatabase.driver('neo4j+s://69c255a0.databases.neo4j.io', auth=('neo4j', 'E1Y7GU9nTNvIaNQKZRN-MXeJHkB-W_-xliZoy-ubseo'), max_connection_lifetime=120)
 
@@ -44,6 +42,9 @@ class FriendsLoader:
             self._current_step_users = self._next_step_candidates - self._users_of_previous_steps
         self._run_step(last_step=True)
 
+        with self._driver.session(database="neo4j") as session:
+            session.execute_write(fix_one_directional_friendships)
+
         self._driver.close()
 
 
@@ -57,14 +58,14 @@ class FriendsLoader:
     def _handle_user(self, user_id: int, last_step=False):
         #try:
         with self._driver.session(database="neo4j") as session:
-            friend_ids = self.vk_get_friends(user_id)
+            friend_ids = self._vk_get_friends(user_id)
             for friend_id in friend_ids:
                 if friend_id not in self._created_users:
                     if not last_step:
                         self.add_user(session, friend_id)
                     else:
                         continue
-                session.execute_write(add_user_connection, user_id, friend_id)
+                session.execute_write(add_user_connection, user_id, friend_id, 'FRIENDSHIP')
                 self._next_step_candidates.add(friend_id)
         #except Exception as e:
         #    traceback.print_exc()
@@ -72,28 +73,26 @@ class FriendsLoader:
 
 
 
-    def vk_get_friends(self, user_id) -> list:
+    def _vk_get_friends(self, user_id) -> list:
         try:
             return self._vk.friends.get(user_id=user_id)['items']
         except vk_api.exceptions.ApiError as e:
             if str(e) == '[30] This profile is private':
-                self._private_profiles.add(user_id)
                 return []
             raise e
 
 
 
-
-
     def add_user(self, session: Session, user_id: int):
         self._created_users.add(user_id)
-        user = self._vk.users.get(user_id=user_id)[0]
+        user = self._vk.users.get(user_id=user_id, lang='ru')[0]
         session.execute_write(add_user, user_id, user['first_name'], user['last_name'])
 
 
 
 def add_user(tx: Transaction, user_id, name, surname):
-    tx.run('CREATE (u:User {id: $id, name: $name, surname: $surname})',
+    name = name + ' ' + surname  # Because I can't figure out how to set custom captions. Should be fine, but can be improved
+    tx.run('CREATE (u:User {id: $id, name: $name})',
            id=user_id, name=name, surname=surname)
 
 
@@ -107,11 +106,13 @@ def add_user(tx: Transaction, user_id, name, surname):
 #         return record
 
 
-def add_user_connection(tx: Transaction, subscriber_from_id: int, subscriber_to_id: int):
-    tx.run('''
+def add_user_connection(tx: Transaction, subscriber_from_id: int, subscriber_to_id: int, connection_type: str):
+    if connection_type not in ['FRIENDSHIP', 'SUBSCRIPTION']:
+        raise ValueError('Attempted to use unsupported connection_type')
+    tx.run(f'''
     MATCH (a: User), (b: User)
     WHERE a.id = $subscriber_from_id AND b.id = $subscriber_to_id
-    CREATE (a) -[:USER_TO_USER]-> (b)
+    CREATE (a) -[:{connection_type}]-> (b)
     ''', subscriber_from_id=subscriber_from_id, subscriber_to_id=subscriber_to_id)
 
 
@@ -122,8 +123,22 @@ def add_user_connection(tx: Transaction, subscriber_from_id: int, subscriber_to_
 #TODO
 #CREATE CONSTRAINT FOR (user:User) REQUIRE user.id IS UNIQUE
 
-def range_closed(a, b, step=1):
-    return range(a, b + step, step)
+def range_closed(start, stop, step=1):
+    """
+    Returns closed range, which includes borders. Made to improve code readability, as half-open range can be confusing
+    in cases like when step is negative.
+
+    Equivalent to range(start, stop + step, step)
+    """
+    return range(start, stop + step, step)
+
+
+def fix_one_directional_friendships(tx: Transaction):
+    tx.run(f'''
+    MATCH (a:User) -[:FRIENDSHIP]-> (b:User)
+    WHERE NOT (a) <-[:FRIENDSHIP]- (b)
+    CREATE (a) <-[:FRIENDSHIP]- (b)
+    ''')
 
 
 if __name__ == '__main__':
