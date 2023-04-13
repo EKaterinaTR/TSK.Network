@@ -64,5 +64,9 @@ def fix_one_directional_friendships(tx: Transaction):
 
 
 def add_user_infos(tx: Transaction, user_infos: Iterable[dict]):
-    for user_info in user_infos:
-        tx.run('MATCH (a: User {id: $id}) SET a.name = $name', id=user_info['id'], name=user_info['name'])
+    user_infos = list(user_infos)
+    tx.run('''
+    UNWIND $user_infos AS row
+    MATCH (a: User {id: row.id})
+    SET a.name = row.name
+    ''', user_infos=user_infos)
