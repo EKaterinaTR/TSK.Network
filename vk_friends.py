@@ -69,10 +69,14 @@ class FriendsLoader:
             if last_step:
                 friend_ids &= self._created_users
                 follower_ids &= self._created_users
-            for friend_id in friend_ids | follower_ids:
-                if friend_id not in self._created_users:
-                    self._add_user(session, friend_id)
-                self._next_step_candidates.add(friend_id)
+            else:
+                # TODO maybe some ids can be excluded here?
+                ids = friend_ids | follower_ids
+                self._next_step_candidates |= ids
+
+                users_to_add = ids - self._created_users
+                self._add_users(session, users_to_add)
+
             session.execute_write(neo4j_transactions.add_friendships, user_id, list(friend_ids))
             session.execute_write(neo4j_transactions.add_followers, list(follower_ids), user_id)
 
@@ -112,9 +116,13 @@ class FriendsLoader:
 
 
     def _add_user(self, session: Session, user_id: int):
-        self._created_users.add(user_id)
         session.execute_write(neo4j_transactions.add_user, user_id)
+        self._created_users.add(user_id)
 
+
+    def _add_users(self, session: Session, user_ids: set[int]):
+        session.execute_write(neo4j_transactions.add_users, user_ids)
+        self._created_users |= user_ids
 
     def _add_user_infos(self):
         # TODO check if it works with many users

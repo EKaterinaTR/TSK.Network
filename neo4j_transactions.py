@@ -7,6 +7,13 @@ def add_user(tx: Transaction, user_id):
     tx.run('CREATE (u:User {id: $id})', id=user_id)
 
 
+def add_users(tx: Transaction, user_ids: set[int]):
+    tx.run('''
+    UNWIND $user_ids AS x
+    MERGE (u:User {id: x})
+    ''', user_ids=list(user_ids))
+
+
 def add_user_connection(tx: Transaction, subscriber_from_id: int, subscriber_to_id: int, connection_type: str):
     if connection_type not in ['FRIEND', 'FOLLOWER']:
         raise ValueError('Attempted to use unsupported connection_type')
