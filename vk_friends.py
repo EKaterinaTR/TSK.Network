@@ -78,7 +78,8 @@ class FriendsLoader:
                 self._add_users(session, users_to_add)
 
             session.execute_write(neo4j_transactions.add_friendships, user_id, list(friend_ids))
-            session.execute_write(neo4j_transactions.add_followers, list(follower_ids), user_id)
+            if self._followers:
+                session.execute_write(neo4j_transactions.add_followers, list(follower_ids), user_id)
 
 
         #except Exception as e:
