@@ -5,6 +5,7 @@ import vk_api.exceptions
 from neo4j import GraphDatabase, Session, Driver
 from vk_api import VkApi
 from vk_api.vk_api import VkApiMethod
+from py_linq import Enumerable
 
 import constants
 import neo4j_transactions
@@ -47,6 +48,8 @@ class FriendsLoader:
 
         with self._driver.session(database=constants.NEO4J_DATABASE_NAME) as session:
             session.execute_write(neo4j_transactions.fix_one_directional_friendships)
+
+        self._add_user_infos()
 
         self._driver.close()
 
@@ -110,8 +113,15 @@ class FriendsLoader:
 
     def _add_user(self, session: Session, user_id: int):
         self._created_users.add(user_id)
-        user = self._vk.users.get(user_id=user_id, lang='ru')[0]
-        session.execute_write(neo4j_transactions.add_user, user_id, user['first_name'], user['last_name'])
+        session.execute_write(neo4j_transactions.add_user, user_id)
+
+
+    def _add_user_infos(self):
+        # TODO check if it works with many users
+        # Maybe if user count is high, user list should be split to batches and distributed between threads?
+        user_infos = Enumerable(self._vk.users.get(user_ids=list(self._created_users), lang='ru')).select(preprocess_user_info)
+        with self._driver.session(database=constants.NEO4J_DATABASE_NAME) as session:
+            session.execute_write(neo4j_transactions.add_user_infos, user_infos=user_infos)
 
 
 def range_closed(start, stop, step=1):
@@ -122,3 +132,10 @@ def range_closed(start, stop, step=1):
     Equivalent to range(start, stop + step, step)
     """
     return range(start, stop + step, step)
+
+
+def preprocess_user_info(user_info: dict):
+    return {
+        'id': user_info['id'],
+        'name': user_info['first_name'] + ' ' + user_info['last_name']
+    }
