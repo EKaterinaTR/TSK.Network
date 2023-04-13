@@ -17,6 +17,22 @@ def add_user_connection(tx: Transaction, subscriber_from_id: int, subscriber_to_
     ''', subscriber_from_id=subscriber_from_id, subscriber_to_id=subscriber_to_id)
 
 
+def add_friendships(tx: Transaction, user_id: int, friends_ids: list[int]):
+    tx.run('''
+    MATCH (a: User), (b: User)
+    WHERE a.id = $user_id AND b.id IN $friends_ids
+    CREATE (a) -[:FRIEND]-> (b)
+    ''', user_id=user_id, friends_ids=friends_ids)
+
+
+def add_followers(tx: Transaction, followers_ids: list[int], user_id: int):
+    tx.run('''
+    MATCH (a: User), (b: User)
+    WHERE a.id = $user_id AND b.id IN $followers_ids
+    CREATE (a) <-[:FOLLOWER]- (b)
+    ''', user_id=user_id, followers_ids=followers_ids)
+
+
 def fix_one_directional_friendships(tx: Transaction):
     tx.run(f'''
     MATCH (a:User) -[:FRIEND]-> (b:User)

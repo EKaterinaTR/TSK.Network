@@ -61,21 +61,18 @@ class FriendsLoader:
     def _handle_user(self, user_id: int, last_step=False):
         #try:
         with self._driver.session(database=constants.NEO4J_DATABASE_NAME) as session:
-            friend_ids = self._vk_get_friends(user_id)
-            follower_ids = self._vk_get_followers(user_id)
-            for i, friend_id in enumerate(friend_ids + follower_ids):
+            friend_ids = set(self._vk_get_friends(user_id))
+            follower_ids = set(self._vk_get_followers(user_id))
+            if last_step:
+                friend_ids &= self._created_users
+                follower_ids &= self._created_users
+            for friend_id in friend_ids | follower_ids:
                 if friend_id not in self._created_users:
-                    if not last_step:
-                        self._add_user(session, friend_id)
-                    else:
-                        continue
-                if i < len(friend_ids):
-                    # Friend
-                    session.execute_write(neo4j_transactions.add_user_connection, user_id, friend_id, 'FRIEND')
-                else:
-                    # Follower
-                    session.execute_write(neo4j_transactions.add_user_connection, friend_id, user_id, 'FOLLOWER')
+                    self._add_user(session, friend_id)
                 self._next_step_candidates.add(friend_id)
+            session.execute_write(neo4j_transactions.add_friendships, user_id, list(friend_ids))
+            session.execute_write(neo4j_transactions.add_followers, list(follower_ids), user_id)
+
 
         #except Exception as e:
         #    traceback.print_exc()
