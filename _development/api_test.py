@@ -20,6 +20,12 @@ def subscribers_test():
     #print(type(friends_query))
 
 
+def get_many_users_test():
+    vk_session = VkApi(token=VK_API_KEY)
+    vk = vk_session.get_api()
+    print(vk.users.get(user_ids=[117547723, 259182295]))
+
+
 def closed_profile_test():
     vk_session = VkApi(token=VK_API_KEY)
     vk = vk_session.get_api()
@@ -29,5 +35,5 @@ def closed_profile_test():
         print(str(e))
 
 
-subscribers_test()
+get_many_users_test()
 #closed_profile_test()
