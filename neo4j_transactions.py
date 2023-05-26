@@ -68,5 +68,21 @@ def add_user_infos(tx: Transaction, user_infos: Iterable[dict]):
     tx.run('''
     UNWIND $user_infos AS row
     MATCH (a: User {id: row.id})
-    SET a.name = row.name
+    SET a.name = row.name, a.surname = row.surname
     ''', user_infos=user_infos)
+
+
+def get_connections(tx: Transaction) -> list[list[int, int, str]]:
+    result = tx.run('''
+    MATCH (a)-[r]-(b)
+    RETURN a.id, b.id, TYPE(r)
+    ''')
+    return [record.values() for record in result]
+
+
+def get_nodes(tx: Transaction) -> list[dict]:
+    result = tx.run('''
+    MATCH (a:User)
+    RETURN properties(a)
+    ''')
+    return [record.values()[0] for record in result]
