@@ -92,10 +92,18 @@ def get_nodes(tx: Transaction) -> list[dict]:
     return [record.values()[0] for record in result]
 
 
-def page_rank(tx: Transaction, graph_owner_id: int):
+_algorithm_names_to_function_names = {'page_rank': 'gds.pageRank', 'hits': 'gds.alpha.hits'}
+_algorithm_names_to_property_names = {'page_rank': 'page_rank_result', 'hits': 'hits_result_'}
+
+def run_graph_algorithm(tx: Transaction, graph_owner_id: int, algorithm='page_rank', hitsIterations=20):
     # Just in case, to avoid "SQL injections" (the language is not SQL, but anyway)
     if not type(graph_owner_id) == int:
         raise ValueError('graph_owner_id must be int')
+    if not type(hitsIterations) == int:
+        raise ValueError('hitsIterations must be int')
+    if not algorithm in _algorithm_names_to_function_names:
+        raise ValueError('Unsupported graph algorithm')
+    function_name = _algorithm_names_to_function_names[algorithm]
 
     graph_name = f'graph_{graph_owner_id}'
 
@@ -107,14 +115,16 @@ def page_rank(tx: Transaction, graph_owner_id: int):
         'MATCH (a:User)-[r]->(b:User) RETURN id(a) AS source, id(b) AS target'
     )
     """, graph_owner_id=graph_owner_id)
+
+    properties = f"writeProperty: '{_algorithm_names_to_property_names[algorithm]}'"
+    if function_name == 'gds.alpha.hits':
+        properties += f", hitsIterations: {hitsIterations}"
+
     # Computes Page Rank and adds it to node properties
     tx.run(f"""
-    CALL gds.graph.project.cypher(
-        '{graph_name}',
-        'MATCH (u:User) WHERE u.graph_owner_id = 0 RETURN id(u) AS id',
-        'MATCH (a:User)-[r]->(b:User) RETURN id(a) AS source, id(b) AS target'
-    )
+    CALL {function_name}.write('{graph_name}', {{{properties}}})
     """)
+    # Deletes graph (nodes and relationships are not removed)
     tx.run(f"""
     CALL gds.graph.drop('{graph_name}')
     """)

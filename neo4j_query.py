@@ -5,8 +5,9 @@ import neo4j_transactions
 
 
 class Neo4JQuery:
-    def __init__(self):
+    def __init__(self, graph_owner_id: int):
         self._driver = GraphDatabase.driver(**constants.NEO4J_CONNECTION_PARAMETERS)
+        self._graph_owner_id = graph_owner_id
 
 
     def get_connections(self) -> list[list[int, int, str]]:
@@ -25,3 +26,13 @@ class Neo4JQuery:
         """
         with self._driver.session(database=constants.NEO4J_DATABASE_NAME) as session:
             return session.execute_read(neo4j_transactions.get_nodes)
+
+
+    def page_rank(self):
+        with self._driver.session(database=constants.NEO4J_DATABASE_NAME) as session:
+            session.execute_write(neo4j_transactions.run_graph_algorithm, self._graph_owner_id)
+
+
+    def hits(self, hits_iterations=20):
+        with self._driver.session(database=constants.NEO4J_DATABASE_NAME) as session:
+            session.execute_write(neo4j_transactions.run_graph_algorithm, self._graph_owner_id, 'hits', hits_iterations)
