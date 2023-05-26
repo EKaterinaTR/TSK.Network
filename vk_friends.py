@@ -146,5 +146,6 @@ def range_closed(start, stop, step=1):
 def preprocess_user_info(user_info: dict):
     return {
         'id': user_info['id'],
-        'name': user_info['first_name'] + ' ' + user_info['last_name']
+        'name': user_info['first_name'],
+        'surname': user_info['last_name']
     }
