@@ -78,3 +78,11 @@ def get_connections(tx: Transaction) -> list[list[int, int, str]]:
     RETURN a.id, b.id, TYPE(r)
     ''')
     return [record.values() for record in result]
+
+
+def get_nodes(tx: Transaction) -> list[dict]:
+    result = tx.run('''
+    MATCH (a:User)
+    RETURN properties(a)
+    ''')
+    return [record.values()[0] for record in result]
