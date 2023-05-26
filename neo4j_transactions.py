@@ -92,6 +92,34 @@ def get_nodes(tx: Transaction) -> list[dict]:
     return [record.values()[0] for record in result]
 
 
+def page_rank(tx: Transaction, graph_owner_id: int):
+    # Just in case, to avoid "SQL injections" (the language is not SQL, but anyway)
+    if not type(graph_owner_id) == int:
+        raise ValueError('graph_owner_id must be int')
+
+    graph_name = f'graph_{graph_owner_id}'
+
+    # Creates graph
+    tx.run(f"""
+    CALL gds.graph.project.cypher(
+        '{graph_name}',
+        'MATCH (u:User) WHERE u.graph_owner_id = 0 RETURN id(u) AS id',
+        'MATCH (a:User)-[r]->(b:User) RETURN id(a) AS source, id(b) AS target'
+    )
+    """, graph_owner_id=graph_owner_id)
+    # Computes Page Rank and adds it to node properties
+    tx.run(f"""
+    CALL gds.graph.project.cypher(
+        '{graph_name}',
+        'MATCH (u:User) WHERE u.graph_owner_id = 0 RETURN id(u) AS id',
+        'MATCH (a:User)-[r]->(b:User) RETURN id(a) AS source, id(b) AS target'
+    )
+    """)
+    tx.run(f"""
+    CALL gds.graph.drop('{graph_name}')
+    """)
+
+
 def clear_graph_by_owner(tx: Transaction, graph_owner_id: int):
     tx.run('''
     MATCH (n:User {graph_owner_id: $graph_owner_id})
