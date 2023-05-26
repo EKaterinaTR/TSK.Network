@@ -1,0 +1,15 @@
+version: "3.8"
+
+services:
+  neo4j:
+    image: neo4j:5.8.0-community
+    environment:
+      - NEO4JLABS_PLUGINS=["graph-data-science"]
+      - NEO4J_AUTH=neo4j/neo4j_password
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - ./neo4j/database:/data
+      - ./neo4j/logs:/logs
+      - ./neo4j/conf:/conf
