@@ -37,22 +37,6 @@ class Neo4JQuery:
             session.execute_write(neo4j_transactions.run_graph_algorithm, self._graph_owner_id)
 
 
-    def get_page_rank_important_nodes(self, threshold: float):
-        with self._driver.session(database=constants.NEO4J_DATABASE_NAME) as session:
-            return session.execute_read(neo4j_transactions.get_page_rank_important_nodes, threshold, self._graph_owner_id)
-
-    def get_page_rank_important_nodes(self, threshold: float):
-        with self._driver.session(database=constants.NEO4J_DATABASE_NAME) as session:
-            return session.execute_read(neo4j_transactions.get_page_rank_connections_of_important_nodes, threshold, self._graph_owner_id)
-
-    def get_hits_important_nodes(self, threshold: float):
-        with self._driver.session(database=constants.NEO4J_DATABASE_NAME) as session:
-            return session.execute_read(neo4j_transactions.get_hits_important_nodes, threshold, self._graph_owner_id)
-
-    def get_page_rank_important_nodes(self, threshold: float):
-        with self._driver.session(database=constants.NEO4J_DATABASE_NAME) as session:
-            return session.execute_read(neo4j_transactions.get_hits_connections_of_important_nodes, threshold, self._graph_owner_id)
-
     def hits(self, hits_iterations=20):
         """
         Runs HITS algorighm.
@@ -60,3 +44,26 @@ class Neo4JQuery:
         """
         with self._driver.session(database=constants.NEO4J_DATABASE_NAME) as session:
             session.execute_write(neo4j_transactions.run_graph_algorithm, self._graph_owner_id, 'hits', hits_iterations)
+
+
+    def get_page_rank_important_nodes(self, threshold: float):
+        with self._driver.session(database=constants.NEO4J_DATABASE_NAME) as session:
+            return session.execute_read(neo4j_transactions.get_page_rank_important_nodes, threshold, self._graph_owner_id)
+
+    def get_page_rank_connections_of_important_nodes(self, threshold: float):
+        with self._driver.session(database=constants.NEO4J_DATABASE_NAME) as session:
+            return session.execute_read(neo4j_transactions.get_page_rank_connections_of_important_nodes, threshold, self._graph_owner_id)
+
+    def get_hits_important_nodes(self, threshold: float):
+        with self._driver.session(database=constants.NEO4J_DATABASE_NAME) as session:
+            return session.execute_read(neo4j_transactions.get_hits_important_nodes, threshold, self._graph_owner_id)
+
+    def get_hits_connections_of_important_nodes(self, threshold: float):
+        with self._driver.session(database=constants.NEO4J_DATABASE_NAME) as session:
+            return session.execute_read(neo4j_transactions.get_hits_connections_of_important_nodes, threshold, self._graph_owner_id)
+
+    def get_top_nodes(self, property_name: str, count: int):
+        with self._driver.session(database=constants.NEO4J_DATABASE_NAME) as session:
+            return session.execute_read(neo4j_transactions.get_top_nodes, property_name, count, self._graph_owner_id)
+
+

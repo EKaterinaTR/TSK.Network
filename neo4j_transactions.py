@@ -135,6 +135,19 @@ def get_hits_connections_of_important_nodes(tx: Transaction, graph_owner_id: int
     return [record.values() for record in result]
 
 
+def get_top_nodes(tx: Transaction, property_name: str, count: int, graph_owner_id: int) -> list[dict]:
+    if property_name not in ['page_rank_result', 'hits_result_hub', 'hits_result_auth']:
+        raise ValueError('Unsupported property')
+    result = tx.run(f'''
+    MATCH (a:User)
+    WHERE a.graph_owner_id = $graph_owner_id
+    RETURN properties(a)
+    ORDER BY a.{property_name} DESC
+    LIMIT $count
+    ''', graph_owner_id=graph_owner_id, count=count)
+    return [record.values()[0] for record in result]
+
+
 _algorithm_names_to_function_names = {'page_rank': 'gds.pageRank', 'hits': 'gds.alpha.hits'}
 _algorithm_names_to_property_names = {'page_rank': 'page_rank_result', 'hits': 'hits_result_'}
 
