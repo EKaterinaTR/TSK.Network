@@ -76,20 +76,63 @@ def add_user_infos(tx: Transaction, user_infos: Iterable[dict]):
     ''', user_infos=user_infos)
 
 
-def get_connections(tx: Transaction) -> list[list[int, int, str]]:
+def get_connections(tx: Transaction, graph_owner_id: int) -> list[list[int, int, str]]:
     result = tx.run('''
     MATCH (a)-[r]-(b)
+    WHERE a.graph_owner_id = $graph_owner_id
     RETURN a.id, b.id, TYPE(r)
-    ''')
+    ''', graph_owner_id=graph_owner_id)
     return [record.values() for record in result]
 
 
-def get_nodes(tx: Transaction) -> list[dict]:
+def get_nodes(tx: Transaction, graph_owner_id: int) -> list[dict]:
     result = tx.run('''
     MATCH (a:User)
+    WHERE a.graph_owner_id = $graph_owner_id
     RETURN properties(a)
-    ''')
+    ''', graph_owner_id=graph_owner_id)
     return [record.values()[0] for record in result]
+
+
+def get_page_rank_important_nodes(tx: Transaction, threshold:float, graph_owner_id: int) -> list[dict]:
+    result = tx.run('''
+    MATCH (a:User)
+    WHERE a.graph_owner_id = $graph_owner_id
+      AND a.page_rank_result >= $threshold
+    RETURN properties(a)
+    ''', graph_owner_id=graph_owner_id, threshold=threshold)
+    return [record.values()[0] for record in result]
+
+
+def get_page_rank_connections_of_important_nodes(tx: Transaction, graph_owner_id: int) -> list[list[int, int, str]]:
+    result = tx.run('''
+    MATCH (a)-[r]-(b)
+    WHERE a.graph_owner_id = $graph_owner_id
+      AND a.page_rank_result >= $threshold AND b.page_rank_result >= $threshold
+    RETURN a.id, b.id, TYPE(r)
+    ''', graph_owner_id=graph_owner_id)
+    return [record.values() for record in result]
+
+
+def get_hits_important_nodes(tx: Transaction, threshold:float, graph_owner_id: int) -> list[dict]:
+    result = tx.run('''
+    MATCH (a:User)
+    WHERE a.graph_owner_id = $graph_owner_id
+      AND (a.hits_result_hub >= $threshold OR a.hits_result_auth >= $threshold)
+    RETURN properties(a)
+    ''', graph_owner_id=graph_owner_id, threshold=threshold)
+    return [record.values()[0] for record in result]
+
+
+def get_hits_connections_of_important_nodes(tx: Transaction, graph_owner_id: int) -> list[list[int, int, str]]:
+    result = tx.run('''
+    MATCH (a)-[r]-(b)
+    WHERE a.graph_owner_id = $graph_owner_id
+      AND (a.hits_result_hub >= $threshold OR a.hits_result_auth >= $threshold)
+      AND (b.hits_result_hub >= $threshold OR b.hits_result_auth >= $threshold)
+    RETURN a.id, b.id, TYPE(r)
+    ''', graph_owner_id=graph_owner_id)
+    return [record.values() for record in result]
 
 
 _algorithm_names_to_function_names = {'page_rank': 'gds.pageRank', 'hits': 'gds.alpha.hits'}
