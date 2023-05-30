@@ -1,0 +1,8 @@
+neo4j==5.7.0
+py-linq==1.4.0
+vk-api==11.9.9
+requests==2.31.0
+pandas==2.0.1
+Django==4.1.5
+Pillow==9.4.0
+psycopg2==2.9.5

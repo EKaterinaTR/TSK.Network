@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block content %}
+    <a href="{% url 'graphtop' 'all' '117547723' %}">Все вершины</a>
+    <a href="{% url 'graphtop' 'page_rank' '117547723' %}">Топ по pagerank</a>
+    <a href="{% url 'graphtop' 'hits' '117547723' %}">Топ по hits c порогом</a>
+{% endblock %}
