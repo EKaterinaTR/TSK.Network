@@ -5,7 +5,7 @@ import test_user_ids
 
 FriendsLoader().run(user_id=test_user_ids.user_id_arthur, depth=1, graph_owner_id=0, followers=False)
 FriendsLoader().run(user_id=test_user_ids.user_id_arthur, depth=1, graph_owner_id=1, followers=False)
-FriendsLoader().run(user_id=test_user_ids.user_id_arthur, depth=1, graph_owner_id=2, followers=False)
+#FriendsLoader().run(user_id=test_user_ids.user_id_arthur, depth=1, graph_owner_id=2, followers=False)
 
 neo4j_0 = Neo4JQuery(graph_owner_id=0)
 neo4j_0.page_rank()
