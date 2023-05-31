@@ -167,7 +167,7 @@ def run_graph_algorithm(tx: Transaction, graph_owner_id: int, algorithm='page_ra
     tx.run(f"""
     CALL gds.graph.project.cypher(
         '{graph_name}',
-        'MATCH (u:User) WHERE u.graph_owner_id = 0 RETURN id(u) AS id',
+        'MATCH (u:User) WHERE u.graph_owner_id = $graph_owner_id RETURN id(u) AS id',
         'MATCH (a:User)-[r]->(b:User) RETURN id(a) AS source, id(b) AS target'
     )
     """, graph_owner_id=graph_owner_id)
