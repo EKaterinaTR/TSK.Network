@@ -17,14 +17,13 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
-from djproject.views import main_view, registration_view, auth_view, logout_view, graphtop_view,graphtopmenu_view
+from djproject.views import main_view, registration_view, auth_view, logout_view, graphtopmenu_view
 
 urlpatterns = [
     path("", main_view, name="main"),
     path('admin/', admin.site.urls),
     path("registration/", registration_view, name="registration"),
     path("auth/", auth_view, name="auth"),
-    path("graphtop/<str:algorithm>/", graphtop_view, name="graphtop"),
     path("graphtopmenu/", graphtopmenu_view, name="graphtopmenu"),
     path("logout/", logout_view, name="logout"),
 ]

@@ -16,27 +16,6 @@ def main_view(request):
     return render(request, "main.html", {})
 
 
-@login_required
-def graphtop_view(request, algorithm='all'):
-    form = GraphPointListForm()
-    if request.method == 'POST' and request.POST.get('vk_id') is not None:
-        form = GraphPointListForm(data=request.POST)
-        real_vk_id = get_user_id(token=request.user.vkuser.vk_key, name_to_resolve=form.cleaned_data['vk_id'])
-        FriendsLoader().run(user_id=real_vk_id, token=request.user.vkuser.vk_key, depth=1, graph_owner_id=request.user.id,
-                            followers=False)
-        neo4j = Neo4JQuery(graph_owner_id=request.user.id)
-        if(algorithm == 'page_rank'):
-            neo4j.page_rank()
-            points = neo4j.get_nodes()
-        elif(algorithm == 'hits'):
-            neo4j.hits()
-            points = neo4j.get_nodes()
-        else:
-            points = neo4j.get_nodes()
-    else:
-        points = []
-    return render(request, "graphtop.html", {"form": form,'points': points})
-
 
 @login_required
 def graphtopmenu_view(request):
