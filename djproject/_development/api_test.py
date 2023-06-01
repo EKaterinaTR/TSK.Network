@@ -1,8 +1,7 @@
-import requests
 import vk_api.exceptions
 from vk_api import VkApi
 
-from constants import VK_API_KEY
+from _development.test_constants import VK_API_KEY
 
 
 def subscribers_test():
