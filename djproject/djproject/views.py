@@ -5,8 +5,8 @@ from django.contrib.auth.decorators import login_required
 from djproject.forms import RegistrationForm, AuthForm, GraphPointListForm
 from djproject.models import VKUser, StateGraph
 from djproject.neo4j_query import Neo4JQuery
-from djproject.neo4j_transactions import get_page_rank_important_nodes
 from djproject.vk_friends import FriendsLoader
+from djproject.vk_utils import get_user_id
 
 User = get_user_model()
 
@@ -17,24 +17,54 @@ def main_view(request):
 
 
 @login_required
-def graphtop_view(request, id='117547723', algorithm='all'):
-    FriendsLoader().run(user_id=id, token=request.user.vkuser.vk_key, depth=1, graph_owner_id=request.user.id,
-                        followers=False)
-    neo4j = Neo4JQuery(graph_owner_id=request.user.id)
-    if(algorithm == 'page_rank'):
-        neo4j.page_rank()
-        points = neo4j.get_nodes()
-    elif (algorithm == 'hits'):
-        neo4j.hits()
-        points = neo4j.get_nodes()
+def graphtop_view(request, algorithm='all'):
+    form = GraphPointListForm()
+    if request.method == 'POST' and request.POST.get('vk_id') is not None:
+        form = GraphPointListForm(data=request.POST)
+        real_vk_id = get_user_id(token=request.user.vkuser.vk_key, name_to_resolve=form.cleaned_data['vk_id'])
+        FriendsLoader().run(user_id=real_vk_id, token=request.user.vkuser.vk_key, depth=1, graph_owner_id=request.user.id,
+                            followers=False)
+        neo4j = Neo4JQuery(graph_owner_id=request.user.id)
+        if(algorithm == 'page_rank'):
+            neo4j.page_rank()
+            points = neo4j.get_nodes()
+        elif(algorithm == 'hits'):
+            neo4j.hits()
+            points = neo4j.get_nodes()
+        else:
+            points = neo4j.get_nodes()
     else:
-        points = neo4j.get_nodes()
-    return render(request, "graphtop.html", {'points': points})
+        points = []
+    return render(request, "graphtop.html", {"form": form,'points': points})
 
 
 @login_required
 def graphtopmenu_view(request):
-    return render(request, "graphtopmenu.html", )
+    form = GraphPointListForm()
+    alg=0
+    if request.method == 'GET' and request.GET.get('vk_id') is not None:
+        form = GraphPointListForm(data=request.GET)
+        real_vk_id = get_user_id(token=request.user.vkuser.vk_key, name_to_resolve=form.data['vk_id'])
+        print(real_vk_id)
+        FriendsLoader().run(user_id=real_vk_id, token=request.user.vkuser.vk_key, depth=1,
+                            graph_owner_id=request.user.id,
+                            followers=False)
+        neo4j = Neo4JQuery(graph_owner_id=request.user.id)
+        if (form.data['algorithm'][0] == '2'):
+            alg = 2
+            neo4j.page_rank()
+            points = neo4j.get_nodes()
+        elif (form.data['algorithm'][0] == '3'):
+            alg = 3
+            neo4j.hits()
+            points = neo4j.get_nodes()
+        else:
+            points = neo4j.get_nodes()
+    else:
+        points = []
+    print('all')
+    form = GraphPointListForm()
+    return render(request, "graphtopmenu.html", {"form": form, 'points': points, 'alg':alg})
 
 
 def registration_view(request):

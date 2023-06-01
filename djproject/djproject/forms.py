@@ -5,6 +5,7 @@ User = get_user_model()
 
 
 class RegistrationForm(forms.ModelForm):
+    password = forms.CharField(widget=forms.PasswordInput())
     password2 = forms.CharField(widget=forms.PasswordInput())
     vk_key = forms.CharField(widget=forms.PasswordInput())
 
@@ -25,3 +26,13 @@ class AuthForm(forms.Form):
 
 class GraphPointListForm(forms.Form):
     vk_id = forms.CharField()
+    CHOICES = [
+        ('1', 'Без алгоритма'),
+        ('2', 'Page Rank'),
+        ('3', 'Hits'),
+    ]
+    algorithm = forms.ChoiceField(
+        widget=forms.RadioSelect,
+        choices=CHOICES,
+    )
+    # min_showing_score = forms.CharField(empty_value='0')

@@ -24,7 +24,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path("registration/", registration_view, name="registration"),
     path("auth/", auth_view, name="auth"),
-    path("graphtop/<str:algorithm>/<str:id>/", graphtop_view, name="graphtop"),
+    path("graphtop/<str:algorithm>/", graphtop_view, name="graphtop"),
     path("graphtopmenu/", graphtopmenu_view, name="graphtopmenu"),
     path("logout/", logout_view, name="logout"),
 ]
