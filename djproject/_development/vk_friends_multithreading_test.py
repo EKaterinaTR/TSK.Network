@@ -6,10 +6,10 @@ from djproject.vk_friends import FriendsLoader
 
 print('With multithreading:')
 start_time = time()
-FriendsLoader().run(token=VK_API_KEY, user_id=test_constants.user_id_arthur, depth=1, graph_owner_id=10, followers=False)
+FriendsLoader().run(token=VK_API_KEY, user_id=test_constants.user_id_artem, depth=1, graph_owner_id=10, followers=False)
 print(time() - start_time)
 
 print('Without multithreading:')
 start_time = time()
-FriendsLoader(multithreading=False).run(token=VK_API_KEY, user_id=test_constants.user_id_arthur, depth=1, graph_owner_id=10, followers=False)
+FriendsLoader(multithreading=False).run(token=VK_API_KEY, user_id=test_constants.user_id_artem, depth=1, graph_owner_id=20, followers=False)
 print(time() - start_time)
