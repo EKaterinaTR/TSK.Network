@@ -12,7 +12,7 @@ from  djproject import neo4j_transactions
 
 
 class FriendsLoader:
-    def __init__(self):
+    def __init__(self, multithreading=True):
         self._users_of_previous_steps: set | None = None
         self._current_step_users: set | None = None
         self._next_step_candidates: set | None = None
@@ -21,6 +21,7 @@ class FriendsLoader:
         self._driver: Driver | None = None
         self._vk = VkApiMethod | None
         self._followers: bool | None = None
+        self._multithreading = multithreading
 
 
     def run(self,token:str, user_id: int, depth: int, graph_owner_id: int, followers=False):
@@ -60,9 +61,11 @@ class FriendsLoader:
 
     def _run_step(self, last_step=False):
         handle_user_partial = partial(self._handle_user, last_step=last_step)
-        with ThreadPool() as pool:
-            pool.map(handle_user_partial, self._current_step_users)
-        #list(map(self._handle_user, self._current_step_users))
+        if self._multithreading:
+            with ThreadPool() as pool:
+                pool.map(handle_user_partial, self._current_step_users)
+        else:
+            list(map(self._handle_user, self._current_step_users))
 
 
     def _handle_user(self, user_id: int, last_step=False):
