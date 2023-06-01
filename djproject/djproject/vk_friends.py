@@ -7,12 +7,12 @@ from vk_api import VkApi
 from vk_api.vk_api import VkApiMethod
 from py_linq import Enumerable
 
-import constants
-import neo4j_transactions
+from  djproject import constants
+from  djproject import neo4j_transactions
 
 
 class FriendsLoader:
-    def __init__(self):
+    def __init__(self, multithreading=True):
         self._users_of_previous_steps: set | None = None
         self._current_step_users: set | None = None
         self._next_step_candidates: set | None = None
@@ -21,21 +21,26 @@ class FriendsLoader:
         self._driver: Driver | None = None
         self._vk = VkApiMethod | None
         self._followers: bool | None = None
+        self._multithreading = multithreading
 
 
-    def run(self, user_id: int, depth: int, followers=False):
+    def run(self,token:str, user_id: int, depth: int, graph_owner_id: int, followers=False):
         self._followers = followers
         self._users_of_previous_steps = set()
         self._current_step_users = set()
         self._next_step_candidates = set()
         self._created_users = set()
+        self._graph_owner_id = graph_owner_id
 
-        vk_session = VkApi(token=constants.VK_API_KEY)
+        vk_session = VkApi(token=token)
         self._vk = vk_session.get_api()
 
         self._driver = GraphDatabase.driver(**constants.NEO4J_CONNECTION_PARAMETERS)
 
         with self._driver.session(database=constants.NEO4J_DATABASE_NAME) as session:
+            # Deletes previous graph of user
+            session.execute_write(neo4j_transactions.clear_graph_by_owner, self._graph_owner_id)
+            # Adds initial user
             self._add_user(session, user_id)
 
         self._current_step_users.add(user_id)
@@ -47,7 +52,7 @@ class FriendsLoader:
         self._run_step(last_step=True)
 
         with self._driver.session(database=constants.NEO4J_DATABASE_NAME) as session:
-            session.execute_write(neo4j_transactions.fix_one_directional_friendships)
+            session.execute_write(neo4j_transactions.fix_one_directional_friendships, self._graph_owner_id)
 
         self._add_user_infos()
 
@@ -56,9 +61,11 @@ class FriendsLoader:
 
     def _run_step(self, last_step=False):
         handle_user_partial = partial(self._handle_user, last_step=last_step)
-        with ThreadPool() as pool:
-            pool.map(handle_user_partial, self._current_step_users)
-        #list(map(self._handle_user, self._current_step_users))
+        if self._multithreading:
+            with ThreadPool() as pool:
+                pool.map(handle_user_partial, self._current_step_users)
+        else:
+            list(map(self._handle_user, self._current_step_users))
 
 
     def _handle_user(self, user_id: int, last_step=False):
@@ -77,9 +84,9 @@ class FriendsLoader:
                 users_to_add = ids - self._created_users
                 self._add_users(session, users_to_add)
 
-            session.execute_write(neo4j_transactions.add_friendships, user_id, list(friend_ids))
+            session.execute_write(neo4j_transactions.add_friendships, user_id, list(friend_ids), self._graph_owner_id)
             if self._followers:
-                session.execute_write(neo4j_transactions.add_followers, list(follower_ids), user_id)
+                session.execute_write(neo4j_transactions.add_followers, list(follower_ids), user_id, self._graph_owner_id)
 
 
         #except Exception as e:
@@ -117,12 +124,12 @@ class FriendsLoader:
 
 
     def _add_user(self, session: Session, user_id: int):
-        session.execute_write(neo4j_transactions.add_user, user_id)
+        session.execute_write(neo4j_transactions.add_user, user_id, self._graph_owner_id)
         self._created_users.add(user_id)
 
 
     def _add_users(self, session: Session, user_ids: set[int]):
-        session.execute_write(neo4j_transactions.add_users, user_ids)
+        session.execute_write(neo4j_transactions.add_users, user_ids, self._graph_owner_id)
         self._created_users |= user_ids
 
     def _add_user_infos(self):
@@ -146,5 +153,6 @@ def range_closed(start, stop, step=1):
 def preprocess_user_info(user_info: dict):
     return {
         'id': user_info['id'],
-        'name': user_info['first_name'] + ' ' + user_info['last_name']
+        'name': user_info['first_name'],
+        'surname': user_info['last_name']
     }

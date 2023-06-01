@@ -1,2 +1,0 @@
-CREATE CONSTRAINT user_unique IF NOT EXISTS
-FOR (user:User) REQUIRE user.id IS UNIQUE;
