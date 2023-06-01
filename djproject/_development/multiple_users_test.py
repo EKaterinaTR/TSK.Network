@@ -1,10 +1,10 @@
-from neo4j_query import Neo4JQuery
-from vk_friends import FriendsLoader
-import test_user_ids
+from _development import test_constants
+from djproject.neo4j_query import Neo4JQuery
+from djproject.vk_friends import FriendsLoader
 
 
-FriendsLoader().run(user_id=test_user_ids.user_id_arthur, depth=1, graph_owner_id=0, followers=False)
-FriendsLoader().run(user_id=test_user_ids.user_id_arthur, depth=1, graph_owner_id=1, followers=False)
+FriendsLoader().run(user_id=test_constants.user_id_arthur, depth=1, graph_owner_id=0, followers=False)
+FriendsLoader().run(user_id=test_constants.user_id_arthur, depth=1, graph_owner_id=1, followers=False)
 #FriendsLoader().run(user_id=test_user_ids.user_id_arthur, depth=1, graph_owner_id=2, followers=False)
 
 neo4j_0 = Neo4JQuery(graph_owner_id=0)
