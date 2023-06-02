@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model, authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 
 from djproject.forms import RegistrationForm, AuthForm, GraphPointListForm
+from djproject.graph_visualizer import GraphVisualizer
 from djproject.models import VKUser, StateGraph
 from djproject.neo4j_query import Neo4JQuery
 from djproject.vk_friends import FriendsLoader
@@ -21,6 +22,7 @@ def main_view(request):
 def graphtopmenu_view(request):
     form = GraphPointListForm()
     alg=0
+    algorithm_path = None
     if request.method == 'GET' and request.GET.get('vk_id') is not None:
         form = GraphPointListForm(data=request.GET)
         real_vk_id = get_user_id(token=request.user.vkuser.vk_key, name_to_resolve=form.data['vk_id'])
@@ -39,11 +41,19 @@ def graphtopmenu_view(request):
             points = neo4j.get_nodes()
         else:
             points = neo4j.get_nodes()
+
+        # artemgur
+        algorithm_dict = {2: 'page_rank', 3: 'hits'}
+        algorithm = algorithm_dict.get(alg, None)
+        GraphVisualizer(graph_owner_id=request.user.id, algorithm=algorithm).create_visualization()
+        algorithm_path = f'pyvis_generated/graph_{request.user.id}.html'
+
+
     else:
         points = []
     print('all')
     form = GraphPointListForm()
-    return render(request, "graphtopmenu.html", {"form": form, 'points': points, 'alg':alg})
+    return render(request, "graphtopmenu.html", {"form": form, 'points': points, 'alg':alg, 'algorithm_path': algorithm_path})
 
 
 def registration_view(request):

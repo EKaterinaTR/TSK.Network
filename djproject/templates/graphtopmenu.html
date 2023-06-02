@@ -7,16 +7,23 @@
             <button> Показать топ вершин </button>
     </form>
 
-    <h2>Вершины</h2>
-    <ul>
-        {% for point in points %}
-            <li>
-                {{ point.surname}}
-                {{ point.name}}
-                {% if alg == 2 %} {{ point.page_rank_result}} {% endif %}
-                {% if alg == 3 and  point.hits_result_hub != ''%} hub:{{ point.hits_result_hub}} {% endif %}
-                {% if alg == 3 and point.hits_result_auth != '' %} auth:{{ point.hits_result_auth}} {% endif %}
-            </li>
-        {% endfor %}
-    </ul>
+    {% if points|length > 0 %}
+        <div style="width:70%;float:right">
+        <h2>Граф</h2>
+        {% include algorithm_path %}
+        </div>
+
+        <h2>Вершины</h2>
+        <ul>
+            {% for point in points %}
+                <li>
+                    {{ point.surname}}
+                    {{ point.name}}
+                    {% if alg == 2 %} {{ point.page_rank_result}} {% endif %}
+                    {% if alg == 3 and  point.hits_result_hub != ''%} hub:{{ point.hits_result_hub}} {% endif %}
+                    {% if alg == 3 and point.hits_result_auth != '' %} auth:{{ point.hits_result_auth}} {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
 {% endblock %}
