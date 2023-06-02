@@ -1,5 +1,8 @@
 {% extends 'base.html' %}
 {% block content %}
+    <link href="https://cdn.jsdelivr.net/gh/tofsjonas/sortable@latest/sortable.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/gh/tofsjonas/sortable@latest/sortable.min.js"></script>
+
     <h2>Введите vk_id</h2>
     <form action="" method="get">
             {% csrf_token %}
@@ -14,16 +17,32 @@
         </div>
 
         <h2>Вершины</h2>
-        <ul>
+        <table class="sortable">
+            <thead>
+            <tr>
+                <th>Фамилия, имя</th>
+                {% if alg == 2 %}
+                    <th>Page Rank</th>
+                {% endif %}
+                {% if alg == 3 %}
+                    <th>HITS hub</th>
+                    <th>HITS authority</th>
+                {% endif %}
+            </tr>
+            </thead>
+            <tbody>
             {% for point in points %}
-                <li>
+                <tr>
+                    <td>
                     {{ point.surname}}
                     {{ point.name}}
-                    {% if alg == 2 %} {{ point.page_rank_result}} {% endif %}
-                    {% if alg == 3 and  point.hits_result_hub != ''%} hub:{{ point.hits_result_hub}} {% endif %}
-                    {% if alg == 3 and point.hits_result_auth != '' %} auth:{{ point.hits_result_auth}} {% endif %}
-                </li>
+                    </td>
+                    {% if alg == 2 %} <td>{{ point.page_rank_result}}</td> {% endif %}
+                    {% if alg == 3 and  point.hits_result_hub != ''%} <td>{{ point.hits_result_hub}}</td> {% endif %}
+                    {% if alg == 3 and point.hits_result_auth != '' %} <td>{{ point.hits_result_auth}}</td> {% endif %}
+                </tr>
             {% endfor %}
-        </ul>
+            </tbody>
+        </table>
     {% endif %}
 {% endblock %}

@@ -34,7 +34,7 @@ def graphtopmenu_view(request):
         if (form.data['algorithm'][0] == '2'):
             alg = 2
             neo4j.page_rank()
-            points = neo4j.get_nodes()
+            points = sorted(neo4j.get_nodes(), key=lambda x: x['page_rank_result'], reverse=True)
         elif (form.data['algorithm'][0] == '3'):
             alg = 3
             neo4j.hits()
