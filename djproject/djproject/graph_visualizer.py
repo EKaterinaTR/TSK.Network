@@ -60,12 +60,13 @@ class GraphVisualizer:
 
         new_node_data = {}
         new_node_data['label'] = name # Node label
-        #new_node_data['title'] = 'wegeew' # Text on hover
         # Корень, чтобы метрика была пропорциональна площади вершины. Множитель нужно брать такой, чтобы граф выглядел красиво
         if self._algorithm == 'page_rank':
+            new_node_data['title'] = f"Page Rank: {node['page_rank_result']}" # Text on hover
             new_node_data['size'] = _normalize(node['page_rank_result'], self._algorithm_metrics_stats['page_rank_min'], self._algorithm_metrics_stats['page_rank_max'],
                                     NODE_SIZE_MIN, NODE_SIZE_MAX)
         if self._algorithm == 'hits':
+            new_node_data['title'] = f"HITS hub: {node['hits_result_hub']}" + '\n' + f"HITS authority: {node['hits_result_auth']}" # Text on hover
             new_node_data['size'] = _normalize(node['hits_result_hub'], self._algorithm_metrics_stats['hits_hub_min'], self._algorithm_metrics_stats['hits_hub_max'],
                                     NODE_SIZE_MIN, NODE_SIZE_MAX)
             color = 255 - int(_normalize(node['hits_result_auth'], self._algorithm_metrics_stats['hits_auth_min'], self._algorithm_metrics_stats['hits_auth_max'], 0, 255))
