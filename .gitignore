@@ -132,3 +132,5 @@ dmypy.json
 
 neo4j/
 *.lprof
+
+djproject/templates/pyvis_generated/*.html
