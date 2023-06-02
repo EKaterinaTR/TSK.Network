@@ -37,7 +37,7 @@ class Neo4JQuery:
             session.execute_write(neo4j_transactions.run_graph_algorithm, self._graph_owner_id)
 
 
-    def hits(self, hits_iterations=20):
+    def hits(self, hits_iterations=3):
         """
         Runs HITS algorighm.
         HITS results are written to node properties called "hits_result_hub" (hub score) and "hits_result_auth" (authority score).
