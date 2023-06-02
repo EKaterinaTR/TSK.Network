@@ -30,7 +30,7 @@ class Neo4JQuery:
 
     def page_rank(self):
         """
-        Runs Page Rank algorighm.
+        Runs Page Rank algorithm.
         Page Rank results are written to node properties called "page_rank_result".
         """
         with self._driver.session(database=constants.NEO4J_DATABASE_NAME) as session:
@@ -39,7 +39,7 @@ class Neo4JQuery:
 
     def hits(self, hits_iterations=3):
         """
-        Runs HITS algorighm.
+        Runs HITS algorithm.
         HITS results are written to node properties called "hits_result_hub" (hub score) and "hits_result_auth" (authority score).
         """
         with self._driver.session(database=constants.NEO4J_DATABASE_NAME) as session:
