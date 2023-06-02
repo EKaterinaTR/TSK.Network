@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>VK Friends Analyze</title>
+     <link href="https://cdn.jsdelivr.net/gh/tofsjonas/sortable@latest/sortable.min.css" rel="stylesheet" />
 </head>
 <body>
     <h1><a href="{% url 'main' %}">VK Friends Analyze<</a></h1>
@@ -13,7 +14,8 @@
             </div>
         {% else %}
             <a href="{% url 'main' %}">Главная</a>
-            <a href="{% url 'graphtopmenu' %}">Рейтинг вершин</a>
+            <a href="{% url 'graphtopmenu' %}">Анализ друзей с помощью графов</a>
+             <a href="{% url 'group' %}">Анализ групп</a>
 {#            <a href="{% url 'main' %}">Граф</a>#}
             <div style="text-align: right">
                 {% if not user.is_anonymous %}

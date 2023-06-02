@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% block content %}
+    <h2>Введите имя группы</h2>
+    <form action="" method="get">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button> Показать информацию о группе</button>
+    </form>
+    {% if is_group %}
+        <table class="sortable">
+        <thead>
+        <tr>
+            <th>Состояние</th>
+            <th>Направленость</th>
+            <th>Возрастное ограничение</th>
+            <th>Количество участников</th>
+            <th>В тренде</th>
+            <th>Верифицированно</th>
+            <th>Состояние стены</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>{{ group.is_closed }}</td>
+            <td>{{ group.activity }}</td>
+            <td>{{ group.age_limits }}</td>
+            <td>{{ group.members_count }}</td>
+            <td>{{ group.trending }}</td>
+            <td>{{ group.verified }}</td>
+            <td>{{ group.wall }}</td>
+        </tr>
+        <h3>Информация о пользователях группы</h3>
+        <table class="sortable">
+            <thead>
+            <tr>
+                <th>Средний возраст</th>
+                <th>Наиболее популярный город</th>
+                <th>Сколько подписчиков заходили за последние 7 дней</th>
+                <th>Сколько подписчиков заходили за последние 7 дней %</th>
+                <th>Среднее количество фолловеров у подписчика</th>
+                <th>Количество подписчиков у которых 1000+ фолловеров</th>
+                <th>Количество подписчиков у которых 1000+ фолловеров %</th>
+                <th>Лица мужского пола %</th>
+                {#              почему сексизм(((#}
+                <th>Верифицированные подписчики %</th>
+                <th>Подписчиков с "огоньком" %</th>
+
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+
+
+                <td>{{ user_info.mean_age }}</td>
+                <td>{{ user_info.city }}</td>
+                <td>{{ user_info.active_core }}</td>
+                <td>{{ user_info.active_core_perc }}</td>
+                <td>{{ user_info.mean_follow }}</td>
+                <td>{{ user_info.follow_threshhold }}</td>
+                <td>{{ user_info.follow_threshhold_perc }}</td>
+                <td>{{ user_info.male_perc }}</td>
+                <td>{{ user_info.verified_perc }}</td>
+                <td>{{ user_info.trend_perc }}</td>
+
+            </tr>
+
+            </tbody>
+        </table>
+    {% endif %}
+
+
+{% endblock %}

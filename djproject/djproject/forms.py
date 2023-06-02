@@ -36,3 +36,6 @@ class GraphPointListForm(forms.Form):
         choices=CHOICES,
     )
     # min_showing_score = forms.CharField(empty_value='0')
+
+class GroupForm(forms.Form):
+    group = forms.CharField()

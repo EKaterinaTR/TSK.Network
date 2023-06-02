@@ -2,10 +2,11 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import get_user_model, authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 
-from djproject.forms import RegistrationForm, AuthForm, GraphPointListForm
+from djproject.forms import RegistrationForm, AuthForm, GraphPointListForm, GroupForm
 from djproject.graph_visualizer import GraphVisualizer
 from djproject.models import VKUser, StateGraph
 from djproject.neo4j_query import Neo4JQuery
+from djproject.services import get_info_about_group, analyze_user
 from djproject.vk_friends import FriendsLoader
 from djproject.vk_utils import get_user_id
 
@@ -16,17 +17,29 @@ User = get_user_model()
 def main_view(request):
     return render(request, "main.html", {})
 
+@login_required
+def group_view(request):
+    form = GroupForm()
+    is_group = True
+    if request.method == 'GET' and request.GET.get('group') is not None:
+        form = GroupForm(data=request.GET)
+        group = get_info_about_group(request.GET.get('group'), request.user.vkuser.vk_key)
+        user_info = analyze_user(request.GET.get('group'), request.user.vkuser.vk_key)
+    else:
+        group = None
+        user_info = None
+        is_group = False
+    return render(request, "group.html",
+                  {"form": form, 'group': group,'is_group':is_group, 'user_info':user_info})
 
 
 @login_required
 def graphtopmenu_view(request):
-    form = GraphPointListForm()
     alg=0
     algorithm_path = None
     if request.method == 'GET' and request.GET.get('vk_id') is not None:
         form = GraphPointListForm(data=request.GET)
         real_vk_id = get_user_id(token=request.user.vkuser.vk_key, name_to_resolve=form.data['vk_id'])
-        print(real_vk_id)
         FriendsLoader().run(user_id=real_vk_id, token=request.user.vkuser.vk_key, depth=1,
                             graph_owner_id=request.user.id,
                             followers=False)

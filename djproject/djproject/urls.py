@@ -17,7 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
-from djproject.views import main_view, registration_view, auth_view, logout_view, graphtopmenu_view
+from djproject.views import main_view, registration_view, auth_view, logout_view, graphtopmenu_view, group_view
 
 urlpatterns = [
     path("", main_view, name="main"),
@@ -26,4 +26,5 @@ urlpatterns = [
     path("auth/", auth_view, name="auth"),
     path("graphtopmenu/", graphtopmenu_view, name="graphtopmenu"),
     path("logout/", logout_view, name="logout"),
+    path("group/",group_view, name="group")
 ]
